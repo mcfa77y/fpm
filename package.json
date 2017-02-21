@@ -1,0 +1,27 @@
+{
+  "name": "fpm",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "nodemon ./bin/www",
+    "debug": "nodemon --debug ./bin/www"
+  },
+  "dependencies": {
+    "bluebird": "^3.4.7",
+    "body-parser": "~1.15.1",
+    "bug-killer": "^4.3.0",
+    "cookie-parser": "~1.4.3",
+    "debug": "~2.2.0",
+    "express": "~4.13.4",
+    "hbs": "~4.0.0",
+    "morgan": "~1.7.0",
+    "r-json": "^1.2.5",
+    "request": "^2.79.0",
+    "request-promise": "^4.1.1",
+    "serve-favicon": "~2.3.0",
+    "underscore": "^1.8.3",
+    "youtube-api": "^2.0.6",
+    "youtube-player": "^4.2.2",
+    "youtube-search": "^1.0.8"
+  }
+}

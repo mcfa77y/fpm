@@ -1,0 +1,14 @@
+<h1>Allow us to Serve you</h1>
+<p>{{data}}</p>
+{{{html}}}
+<ul>
+{{#each data}}
+    <li>Key: {{@index}} Value = 
+        <ul>{{#each this}}
+            <li>subKey: {{@key}} </li>
+            <li> subValue = {{this}}</li>
+            {{/each}}
+        </ul>
+    </li>
+{{/each}}
+</ul>
