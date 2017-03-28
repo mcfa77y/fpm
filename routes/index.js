@@ -1,23 +1,31 @@
 const express = require('express');
 const router = express.Router();
 const rp = require('request-promise');
-const search = require('youtube-search');
-const Youtube = require("youtube-api");
+
+
 const readJson = require("r-json");
 const Logger = require("bug-killer");
-const Promise = require('bluebird');
+const p = require('bluebird');
 const _ = require('underscore');
+const google = require('googleapis');
+var sampleClient = require('../sampleclient');
+var util = require('util');
+
+// initialize the Youtube API library
+var youtube = google.youtube({
+    version: 'v3',
+    auth: sampleClient.oAuth2Client
+});
+
+const list = p.promisify(youtube.search.list)
+const getToken = p.promisify(sampleClient.oAuth2Client.getToken, {
+    context: sampleClient.oAuth2Client
+})
+
+
+
 
 const CREDENTIALS = readJson(`${__dirname}/../credentials.json`);
-
-let oauth = Youtube.authenticate({
-    type: 'oauth',
-    client_id: CREDENTIALS.web.client_id,
-    client_secret: CREDENTIALS.web.client_secret,
-    redirect_url: CREDENTIALS.web.redirect_uris[0]
-});
-const ytsearch = Promise.promisify(Youtube.search.list, { context: Youtube.search });
-
 
 function getErrorGif() {
     const options = {
@@ -60,28 +68,33 @@ function createJsonString(json) {
 router.post('/see', function(req, res, next) {
     const data = createJsonString(req.body);
     console.log(data);
-    res.render('index', { title: 'Express', data });
+    res.render('index', {
+        title: 'Express',
+        data
+    });
 });
 
 
 /* POST home page. */
 router.get('/oauth2callback', function(req, res, next) {
     Logger.log("Trying to get the token using the following code: " + req.query.code);
-    // res.render('index', {data: req.query.code});
-    const getToken = Promise.promisify(oauth.getToken, { context: oauth });
     getToken(req.query.code)
         .then((tokens) => {
             Logger.log("Got the tokens.");
-            oauth.setCredentials(tokens);
+            sampleClient.oAuth2Client.setCredentials(tokens);
+            sampleClient.isAuthenticated = true;
             res.redirect('do_things');
         })
         .catch((err) => {
-            getErrorGif().then((errorImageUrl) => {
-                res.render('error', { error: err, errorImageUrl });
-            });
+            getErrorGif()
+                .then((errorImageUrl) => {
+                    res.render('error', {
+                        error: err,
+                        errorImageUrl
+                    });
+                });
             Logger.log(err);
         });
-
 });
 
 router.post('/make_playlist', function(req, res, next) {
@@ -93,43 +106,79 @@ router.post('/make_playlist', function(req, res, next) {
         topicId: '/m/04rlf',
         type: 'video'
     };
-    Youtube.authenticate({
-        type: 'oauth',
-        refresh_token: oauth.getCredentials(),
-        client_id: CREDENTIALS.web.client_id,
-        client_secret: CREDENTIALS.web.client_secret,
-        redirect_url: CREDENTIALS.web.redirect_uris[0]
-    });
-    ytsearch(options)
+    list(options)
         .then((data) => {
-            Logger.log('search data: ' + createJsonString(data));
-            res.render('do_things', { title: 'Let\'s do things!', data });
+            let d2 = data.items.map((item) => {
+                Logger.log('info item: '+ createJsonString(item)    ,  'info')
+                ({
+                    snippet: {title: title},
+                    snippet: {publishedAt: date},
+                    id: {videoId: videoId},
+                    snippet: {description: description},
+                    snippet: {thumbnails: {medium: {url: thumbnail}}}
+                } = item)
+            });
+
+            Logger.log('search data: ' + createJsonString(d2), 'info');
+            res.render('do_things', {
+                title: 'Let\'s do things!',
+                d2
+            });
         })
         .catch((error) => {
             Logger.log('Error: ' + error, 'error');
             getErrorGif().then((errorImageUrl) => {
-                res.render('error', { error, errorImageUrl });
+                res.render('error', {
+                    error,
+                    errorImageUrl
+                });
             });
         });
 });
+// ytsearch(options)
+//     .then((data) => {
+//         Logger.log('search data: ' + createJsonString(data));
+//         res.render('do_things', { title: 'Let\'s do things!', data });
+//     })
+//     .catch((error) => {
+//         Logger.log('Error: ' + error, 'error');
+//         getErrorGif().then((errorImageUrl) => {
+//             res.render('error', { error, errorImageUrl });
+//         });
+//     });
 
 router.get('/do_things', function(req, res, next) {
 
-    res.render('do_things', { title: 'Let\'s do things!' });
+    res.render('do_things', {
+        title: 'Let\'s do things!'
+    });
 
 });
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-    let authUrl = oauth.generateAuthUrl({
-        access_type: "offline",
-        scope: ["https://www.googleapis.com/auth/youtube"]
+
+    const scopes = [
+        'https://www.googleapis.com/auth/youtube'
+    ];
+    sampleClient.execute(scopes, () => {
+        console.log('sampleClient: ' + createJsonString(arguments));
     });
-    rp(authUrl).then((arg) => {
-        res.render('index', { title: 'Express', html: arg });
-    }).catch((error) => {
-        res.render('error', { error });
-    });
+
+    // let authUrl = oauth.generateAuthUrl({
+    //     access_type: "offline",
+    //     scope: ["https://www.googleapis.com/auth/youtube"]
+    // });
+    // rp(authUrl).then((arg) => {
+    //     res.render('index', {
+    //         title: 'Express',
+    //         html: arg
+    //     });
+    // }).catch((error) => {
+    //     res.render('error', {
+    //         error
+    //     });
+    // });
 });
 
 
