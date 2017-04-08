@@ -109,14 +109,28 @@ router.post('/make_playlist', function(req, res, next) {
     list(options)
         .then((data) => {
             let d2 = data.items.map((item) => {
-                Logger.log('info item: '+ createJsonString(item)    ,  'info')
-                ({
-                    snippet: {title: title},
-                    snippet: {publishedAt: date},
-                    id: {videoId: videoId},
-                    snippet: {description: description},
-                    snippet: {thumbnails: {medium: {url: thumbnail}}}
-                } = item)
+                Logger.log('info item: ' + createJsonString(item), 'info')
+                    ({
+                        snippet: {
+                            title: title
+                        },
+                        snippet: {
+                            publishedAt: date
+                        },
+                        id: {
+                            videoId: videoId
+                        },
+                        snippet: {
+                            description: description
+                        },
+                        snippet: {
+                            thumbnails: {
+                                medium: {
+                                    url: thumbnail
+                                }
+                            }
+                        }
+                    } = item)
             });
 
             Logger.log('search data: ' + createJsonString(d2), 'info');
@@ -156,7 +170,7 @@ router.get('/do_things', function(req, res, next) {
 });
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
+router.get('/login', function(req, res, next) {
 
     const scopes = [
         'https://www.googleapis.com/auth/youtube'
@@ -181,6 +195,30 @@ router.get('/', function(req, res, next) {
     // });
 });
 
+
+/* GET home page. */
+router.get('/', function(req, res, next) {
+
+    res.render('index2', {
+        title: 'Express',
+        html: {}
+    })
+
+    // let authUrl = oauth.generateAuthUrl({
+    //     access_type: "offline",
+    //     scope: ["https://www.googleapis.com/auth/youtube"]
+    // });
+    // rp(authUrl).then((arg) => {
+    //     res.render('index', {
+    //         title: 'Express',
+    //         html: arg
+    //     });
+    // }).catch((error) => {
+    //     res.render('error', {
+    //         error
+    //     });
+    // });
+});
 
 
 
