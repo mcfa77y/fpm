@@ -18,6 +18,15 @@ var youtube = google.youtube({
 });
 
 const list = p.promisify(youtube.search.list)
+const CREDENTIALS = readJson(`${__dirname}/../credentials.json`);
+var OAuth2 = google.auth.OAuth2;
+
+const oAuth2Client = new OAuth2(
+        CREDENTIALS.web.client_id,
+        CREDENTIALS.web.client_secret,
+        CREDENTIALS.web.redirect_uris[0]
+    );
+
 const getToken = p.promisify(sampleClient.oAuth2Client.getToken, {
     context: sampleClient.oAuth2Client
 })
@@ -25,9 +34,9 @@ const getToken = p.promisify(sampleClient.oAuth2Client.getToken, {
 
 
 
-const CREDENTIALS = readJson(`${__dirname}/../credentials.json`);
 
 function getErrorGif() {
+    debugger
     const options = {
         uri: 'http://api.giphy.com/v1/gifs/search',
         qs: {
@@ -80,7 +89,7 @@ router.get('/oauth2callback', function(req, res, next) {
     Logger.log("Trying to get the token using the following code: " + req.query.code);
     getToken(req.query.code)
         .then((tokens) => {
-            Logger.log("Got the tokens.");
+            Logger.log("Got the tokens." + tokens);
             sampleClient.oAuth2Client.setCredentials(tokens);
             sampleClient.isAuthenticated = true;
             res.redirect('do_things');
@@ -169,30 +178,43 @@ router.get('/do_things', function(req, res, next) {
 
 });
 
+
 /* GET home page. */
-router.get('/login', function(req, res, next) {
+router.get('/oAuthUrl', function(req, res, next) {
 
     const scopes = [
         'https://www.googleapis.com/auth/youtube'
     ];
-    sampleClient.execute(scopes, () => {
-        console.log('sampleClient: ' + createJsonString(arguments));
+    authorizeUrl = oAuth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: scopes.join(' ')
+    });
+    res.send(authorizeUrl)
+
+});
+
+/* GET home page. */
+router.get('/link', function(req, res, next) {
+
+    const scopes = [
+        'https://www.googleapis.com/auth/youtube'
+    ];
+    authorizeUrl = oAuth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: scopes.join(' ')
+    });
+    rp(authorizeUrl).then((arg) => {
+        res.render('index', {
+            title: 'Express',
+            html: arg
+        });
+    }).catch((error) => {
+        Logger.log('Error: ' + error, 'error');
+        getErrorGif().then((errorImageUrl) => {
+            res.render('error', { error, errorImageUrl });
+        });
     });
 
-    // let authUrl = oauth.generateAuthUrl({
-    //     access_type: "offline",
-    //     scope: ["https://www.googleapis.com/auth/youtube"]
-    // });
-    // rp(authUrl).then((arg) => {
-    //     res.render('index', {
-    //         title: 'Express',
-    //         html: arg
-    //     });
-    // }).catch((error) => {
-    //     res.render('error', {
-    //         error
-    //     });
-    // });
 });
 
 

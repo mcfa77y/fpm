@@ -25,7 +25,6 @@ var spawn = require('child_process').spawn;
 var url = require('url');
 var querystring = require('querystring');
 var secrets = require('./credentials.json');
-
 var called = false;
 
 function callOnce (callback) {
