@@ -8,16 +8,10 @@ const Logger = require("bug-killer");
 const p = require('bluebird');
 const _ = require('underscore');
 const google = require('googleapis');
-var sampleClient = require('../sampleclient');
+//var sampleClient = require('../sampleclient');
 var util = require('util');
 
-// initialize the Youtube API library
-var youtube = google.youtube({
-    version: 'v3',
-    auth: sampleClient.oAuth2Client
-});
 
-const list = p.promisify(youtube.search.list)
 const CREDENTIALS = readJson(`${__dirname}/../credentials.json`);
 var OAuth2 = google.auth.OAuth2;
 
@@ -27,16 +21,24 @@ const oAuth2Client = new OAuth2(
         CREDENTIALS.web.redirect_uris[0]
     );
 
-const getToken = p.promisify(sampleClient.oAuth2Client.getToken, {
-    context: sampleClient.oAuth2Client
-})
+// initialize the Youtube API library
+const youtube = google.youtube({
+    version: 'v3',
+    auth: oAuth2Client
+});
+
+const list = p.promisify(youtube.search.list, {context: youtube})
+
+// const getToken = p.promisify(sampleClient.oAuth2Client.getToken, {
+//     context: sampleClient.oAuth2Client
+// })
 
 
+const getToken = p.promisify(oAuth2Client.getToken, {context: oAuth2Client})
 
 
 
 function getErrorGif() {
-    debugger
     const options = {
         uri: 'http://api.giphy.com/v1/gifs/search',
         qs: {
@@ -89,10 +91,10 @@ router.get('/oauth2callback', function(req, res, next) {
     Logger.log("Trying to get the token using the following code: " + req.query.code);
     getToken(req.query.code)
         .then((tokens) => {
-            Logger.log("Got the tokens." + tokens);
-            sampleClient.oAuth2Client.setCredentials(tokens);
-            sampleClient.isAuthenticated = true;
-            res.redirect('do_things');
+            Logger.log("Got the tokens." + createJsonString(tokens));
+            oAuth2Client.setCredentials(tokens);
+            //sampleClient.isAuthenticated = true;
+            res.render('close_window');
         })
         .catch((err) => {
             getErrorGif()
@@ -107,48 +109,48 @@ router.get('/oauth2callback', function(req, res, next) {
 });
 
 router.post('/make_playlist', function(req, res, next) {
-    let options = {
-        part: 'snippet',
-        q: 'deadmau5',
-        maxResults: 3,
-        order: 'rating',
-        topicId: '/m/04rlf',
-        type: 'video'
-    };
-    list(options)
-        .then((data) => {
-            let d2 = data.items.map((item) => {
-                Logger.log('info item: ' + createJsonString(item), 'info')
-                    ({
-                        snippet: {
-                            title: title
-                        },
-                        snippet: {
-                            publishedAt: date
-                        },
-                        id: {
-                            videoId: videoId
-                        },
-                        snippet: {
-                            description: description
-                        },
-                        snippet: {
-                            thumbnails: {
-                                medium: {
-                                    url: thumbnail
-                                }
-                            }
-                        }
-                    } = item)
-            });
+    
 
-            Logger.log('search data: ' + createJsonString(d2), 'info');
-            res.render('do_things', {
-                title: 'Let\'s do things!',
-                d2
-            });
-        })
-        .catch((error) => {
+    const searchPromises = req.body.bands.split(req.body.delimiter).map((query)=>{
+        const musicCategory = 10
+        let options = {
+            part: 'snippet',
+            q: query,
+            maxResults: 2,
+            type: 'video',
+            videoCategoryId: musicCategory
+        };
+        return list(options)
+            .then((data) => {
+                return data.items.map((item) => {
+                    Logger.log('info item: ' + createJsonString(item), 'info')
+                    let snippet = item.snippet
+                    let title = snippet.title
+                    let date = snippet.publishedAt
+                    let videoUrl = "https://www.youtube.com/watch?v=" + item.id.videoId
+                    let description = snippet.description
+                    let thumbnail = snippet.thumbnails.medium.url
+                    
+                    return {title, date, videoUrl, description, thumbnail}
+                });
+
+                
+            })
+            
+    })
+    p.reduce(searchPromises,
+        (acc, promises) => {
+            promises.forEach((p) => acc.push(p))
+            return acc
+        },
+        [])
+        .then((data) => {
+            Logger.log('search data: ' + createJsonString(data), 'info');
+                res.render('do_things', {
+                    title: 'Let\'s do things! x',
+                    data
+                });
+        }).catch((error) => {
             Logger.log('Error: ' + error, 'error');
             getErrorGif().then((errorImageUrl) => {
                 res.render('error', {
@@ -157,6 +159,7 @@ router.post('/make_playlist', function(req, res, next) {
                 });
             });
         });
+    
 });
 // ytsearch(options)
 //     .then((data) => {

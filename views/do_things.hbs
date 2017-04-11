@@ -4,10 +4,10 @@
 <div class="form-group">
     <form action="/make_playlist" method="post">
         <div class="input-group input-group-lg">
-            <input type="text" class="form-control" placeholder="festival lineup" aria-describedby="sizing-addon1">
+            <input type="text" class="form-control" placeholder="festival lineup" aria-describedby="sizing-addon1" name="bands" value="LP, metric">
         </div>
         <div class="input-group input-group-lg">
-            <input type="text" class="form-control" placeholder="delimiter" aria-describedby="sizing-addon1">
+            <input type="text" class="form-control" placeholder="delimiter" aria-describedby="sizing-addon1" name="delimiter" value=",">
         </div>
         <div class="btn-group">
             <button type="submit" class="btn btn-primary">
@@ -16,15 +16,14 @@
         </div>
     </form>
 </div>
-<h1> html </h1> {{{html}}}
-<ul>
     {{#each data}}
-    <li>Key: {{@index}} Value =
-        <ul>{{#each this}}
-            <li>subKey: {{@key}} </li>
-            <li> subValue = {{this}}</li>
-            {{/each}}
-        </ul>
-    </li>
+        <div class="card" style="width: 20rem;">
+            <img class="card-img-top" src="{{thumbnail}}" alt="{{title}}">
+            <div class="card-block">
+                <h4 class="card-title">{{title}}</h4>
+                <p class="card-text">{{description}}</p>
+                <p class="card-text">{{date}}</p>
+                <a href="{{videoUrl}}" class="btn btn-primary" target="_blank">Play</a>
+            </div>
+        </div>
     {{/each}}
-</ul>
