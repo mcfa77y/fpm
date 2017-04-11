@@ -189,7 +189,8 @@ router.post('/make_playlist', function(req, res, next) {
                         thumbnail,
                         title,
                         videoId,
-                        videoUrl
+                        videoUrl,
+                        query
                     }
                 });
 
@@ -216,7 +217,11 @@ router.post('/make_playlist', function(req, res, next) {
                             resourceId: details
                         }
                     }
-                });
+                }).then((response)=>{
+                    Logger.log("datum.title: " + datum.title)
+                    Logger.log("datum.query: " + datum.query)
+                    Logger.log("response: " + createJsonString(response))
+                })
             })
 
             Logger.log('search data: ' + createJsonString(data), 'info');

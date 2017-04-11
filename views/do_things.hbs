@@ -1,10 +1,8 @@
 <h1>{{title}}</h1>
-<p>Welcome to {{title}}</p>
-<p>{{data}}</p>
 <div class="form-group">
     <form action="/make_playlist" method="post">
         <div class="input-group input-group-lg">
-            <input type="text" class="form-control" placeholder="festival lineup" aria-describedby="sizing-addon1" name="bands" value="LP, metric">
+            <textarea class="form-control" placeholder="festival lineup" aria-describedby="sizing-addon1" name="bands" value="LP, metric"></textarea>
         </div>
         <div class="input-group input-group-lg">
             <input type="text" class="form-control" placeholder="delimiter" aria-describedby="sizing-addon1" name="delimiter" value=",">
@@ -16,14 +14,14 @@
         </div>
     </form>
 </div>
-    {{#each data}}
-        <div class="card" style="width: 20rem;">
-            <img class="card-img-top" src="{{thumbnail}}" alt="{{title}}">
-            <div class="card-block">
-                <h4 class="card-title">{{title}}</h4>
-                <p class="card-text">{{description}}</p>
-                <p class="card-text">{{date}}</p>
-                <a href="{{videoUrl}}" class="btn btn-primary" target="_blank">Play</a>
-            </div>
-        </div>
-    {{/each}}
+{{#each data}}
+<div class="card" style="width: 20rem;">
+    <img class="card-img-top" src="{{thumbnail}}" alt="{{title}}">
+    <div class="card-block">
+        <h4 class="card-title">{{title}}</h4>
+        <p class="card-text">{{description}}</p>
+        <p class="card-text">{{query}}</p>
+        <a href="{{videoUrl}}" class="btn btn-primary" target="_blank">Play</a>
+    </div>
+</div>
+{{/each}}
