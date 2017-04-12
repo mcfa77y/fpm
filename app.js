@@ -7,7 +7,7 @@ var bodyParser = require('body-parser');
 var cors = require('cors')
 // var routes = require('./routes/index');
 var users = require('./routes/users');
-
+const rp = require('request-promise');
 var app = express();
 var routes = require('./routes/index');
 // view engine setup
@@ -56,18 +56,29 @@ if (app.get('env') === 'development') {
 // production error handler
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    getErrorGif().then((errorImageUrl) => {
-        console.log('errorImageUrl: ' + errorImageUrl)
+        res.status(err.status || 500);
         res.render('error', {
-            err,
-            errorImageUrl
-        });
-    });
-});
+            err
+        })
+    })
+
 
 const CREDENTIALS = require("r-json")(`credentials.json`);
-
+function createJsonString(json) {
+    let cache = [];
+    return JSON.stringify(json, (key, value) => {
+        if (typeof value === 'object' && value !== null) {
+            if (cache.indexOf(value) !== -1) {
+                // Circular reference found, discard key
+                return;
+            }
+            // Store value in our collection
+            cache.push(value);
+        }
+        return value;
+    }, 4);
+}
+const Logger = require("bug-killer");
 function getErrorGif() {
     const options = {
         uri: 'http://api.giphy.com/v1/gifs/search',
@@ -81,14 +92,15 @@ function getErrorGif() {
         },
         json: true // Automatically parses the JSON string in the response
     };
-    return rp(options).then((json) => {
-        const randomIndex = _.random(0, json.data.length);
-        return json.data[randomIndex].images.original.url;
-    }).
-    catch((err) => {
-        Logger.log('Error getting gif: ' + err, 'error');
-
-    });
+    return rp(options)
+        .then((json) => {
+            const randomIndex = _.random(0, json.data.length);
+            Logger.log("getting error gif: " + createJsonString(json.data[randomIndex]))
+            return json.data[randomIndex].images.original.url;
+        })
+        .catch((err) => {
+            Logger.log('Error getting gif: ' + err, 'error');
+        });
 }
 
 module.exports = app;

@@ -1,0 +1,33 @@
+{
+            "kind": "youtube#searchResult",
+            "etag": "\"uQc-MPTsstrHkQcRXL3IWLmeNsM/Vfa-edsFlu7YHePgIVmfAlFtp8Q\"",
+            "id": {
+                "kind": "youtube#video",
+                "videoId": "7PgcNr67Ik8"
+            },
+            "snippet": {
+                "publishedAt": "2017-03-26T19:45:00.000Z",
+                "channelId": "UCR9FRZPban9PShpRCXMzjAg",
+                "title": "Sick Serum Deadmau5 Synth in 60 Seconds!",
+                "description": "So this is my new series called '60 Second Serum' (Catchy, huh?). Basically, it's just quick serum tutorials without me talking all the way through it. I hope you ...",
+                "thumbnails": {
+                    "default": {
+                        "url": "https://i.ytimg.com/vi/7PgcNr67Ik8/default.jpg",
+                        "width": 120,
+                        "height": 90
+                    },
+                    "medium": {
+                        "url": "https://i.ytimg.com/vi/7PgcNr67Ik8/mqdefault.jpg",
+                        "width": 320,
+                        "height": 180
+                    },
+                    "high": {
+                        "url": "https://i.ytimg.com/vi/7PgcNr67Ik8/hqdefault.jpg",
+                        "width": 480,
+                        "height": 360
+                    }
+                },
+                "channelTitle": "kidswithoutinstruments",
+                "liveBroadcastContent": "none"
+            }
+}
