@@ -3,8 +3,8 @@ const router = express.Router();
 const rp = require('request-promise');
 
 
-const readJson = require("r-json");
-const Logger = require("bug-killer");
+const readJson = require('r-json');
+const Logger = require('bug-killer');
 const p = require('bluebird');
 const _ = require('underscore');
 const google = require('googleapis');
@@ -64,17 +64,17 @@ function getErrorGif() {
             const randomIndex = _.random(0, json.data.length);
             return json.data[randomIndex].images.original.url;
         })
-        .catch((err) => {
-            Logger.log('Error getting gif: ' + err, 'error');
 
-        });
 }
 
 function doError(error, res) {
     getErrorGif().then((errorImageUrl) => {
+        res.render('do_things');
+    }).catch((err) => {
+        Logger.log('Error getting gif: ' + err, 'error');
         res.render('error', {
-            error,
-            errorImageUrl
+            error
+
         });
     });
 }
@@ -98,85 +98,137 @@ function createJsonString(json) {
 
 /* POST home page. */
 router.get('/oauth2callback', function(req, res, next) {
-    Logger.log("Trying to get the token using the following code: " + req.query.code);
+    Logger.log('Trying to get the token using the following code: ' + req.query.code);
     getToken(req.query.code)
         .then((tokens) => {
-            Logger.log("Got the tokens." + createJsonString(tokens));
+            Logger.log('Got the tokens.' + createJsonString(tokens));
             oAuth2Client.setCredentials(tokens);
             //sampleClient.isAuthenticated = true;
             res.render('close_window');
         })
         .catch((err) => {
-            getErrorGif()
-                .then((errorImageUrl) => {
-                    res.render('error', {
-                        error: err,
-                        errorImageUrl
-                    });
-                });
-            Logger.log(err);
+            Logger.log('oauth error' + err);
+            doError(err, res)
         });
 });
+function getDupIds(items){
+    return _.chain(items)
+                    .map((item) => {
+                        return {
+                            id: item.id,
+                            videoId: item.snippet.resourceId.videoId
+                        }
+                    })
+                    .groupBy((x) => {
+                        return x.videoId
+                    })
+                    .filter((x) => {
+                        return x.length > 1
+                    })
+                    .flatten()
+                    .map((x) => {
+                        return x.id
+                    })
+                    .value()
+}
+router.get('/remove_dups', function(req, res, next) {
 
+    playlistItems({
+            part: 'snippet',
+            playlistId: 'PL64D0E5AFD257405A',
+            maxResults: 50
+        })
+        .then((response) => {
+
+            function agAg(resp) {
+                // get videos not already in the playlist
+                const dupIds = getDupIds(resp.items)
+                if (dupIds.length == 0 && !resp.nextPageToken) {
+                    return
+                }
+                Logger.log("deleted this many items out of: " + dupIds.length + " / " + resp.items.length)
+                p.some(dupIds.map((id) => {
+                        return deletePlaylistItem({
+                            id
+                        })
+                    }), parseInt(dupIds.length * 0.50))
+                    .then(() => {
+                        const options = {
+                            part: 'snippet',
+                            playlistId: 'PL64D0E5AFD257405A',
+                            maxResults: 50
+                        }
+                        const nextPageToken = resp.nextPageToken;
+                        if(nextPageToken && dupIds.length==0){
+                            options.pageToken=nextPageToken
+                        }
+                        return playlistItems(options)
+                    })
+                    .then((resp) => {
+                        agAg(resp)
+                    })
+                    .catch((err) => {
+                        Logger.log('delete playlist item error 11: ' + err);
+                        doError(err, res)
+                    });
+            }
+            agAg(response)
+        })
+        .catch((err) => {
+            Logger.log('delete playlist item error' + err);
+            doError(err, res)
+        });
+
+})
 router.post('/make_playlist', function(req, res, next) {
-    p.props({
-        data: getData(),
-        playlistVideoIds: getPlayListVideoIds()
-    }).then((result)=>{
-        
-    })
-
     readFile('../searchResults.json', 'utf-8')
         .then((data) => {
-            data = JSON.parse(data)
-            while (data.length > 0) {
-                data.forEach((datum) => {
+            function againAgain(d2) {
+                if (!d2 || d2.length < 1) {
+                    return
+                }
+
+                const insertPromises = d2.map((datum) => {
                     const details = {
                         videoId: datum.videoId,
                         kind: 'youtube#video'
                     }
-                    insertPlaylistItem({
-                            part: 'snippet',
-                            resource: {
-                                snippet: {
-                                    playlistId: 'PL64D0E5AFD257405A',
-                                    resourceId: details
-                                }
-                            }
-                        })
-                        .then((response) => {
-                            Logger.log('datum.title: ' + datum.title)
-                            Logger.log('datum.query: ' + datum.query)
-                            Logger.log('response: ' + createJsonString(response.result))
-                        })
-                        .catch((error) => {
-                            Logger.log("Insert: " + error, 'error')
-                            // doError(error, res)
-                        })
-                })
-                data = playlistItems({
+                    return insertPlaylistItem({
                         part: 'snippet',
-                        playlistId: 'PL64D0E5AFD257405A',
-                        maxResults: 50
+                        resource: {
+                            snippet: {
+                                playlistId: 'PL64D0E5AFD257405A',
+                                resourceId: details
+                            }
+                        }
+                    })
+                })
+
+                p.some(insertPromises, parseInt(insertPromises.length * 0.95))
+                    .then(() => {
+                        Logger.log('number of video insert attempts: ' + d2.length)
+                        return playlistItems({
+                            part: 'snippet',
+                            playlistId: 'PL64D0E5AFD257405A',
+                            maxResults: 50
+                        })
                     })
                     .then((response) => {
                         const playlistVideoIds = response.items.map((item) => {
-                                return item.resourceId.videoId
+                                return item.snippet.resourceId.videoId
                             })
                             // get videos not already in the playlist
-                        debugger
-                        return data.filter((x) => {
+                        const d3 = d2.filter((x) => {
                             return !playlistVideoIds.includes(x.videoId);
                         })
-
+                        againAgain(d3)
+                    }).catch((error) => {
+                        Logger.log('video insert: ' + error, 'error')
                     })
-                    .catch((error) => {
-                        Logger.log("get playlist video ids: " + error, 'error')
-                        // doError(error, res)
-                    })
-
             }
 
+            againAgain(JSON.parse(data))
+                // data = JSON.parse(data)
 
             //Logger.log('search data: ' + createJsonString(data), 'info');
             res.render('do_things', {
@@ -186,7 +238,7 @@ router.post('/make_playlist', function(req, res, next) {
         })
         .catch((error) => {
             doError(error, res)
-        });;
+        });
 
 
 
@@ -226,7 +278,7 @@ router.post('/make_playlist', function(req, res, next) {
     //                 // Logger.log('info item: ' + createJsonString(result), 'info')
     //                 appendFile('../searchResults.json', createJsonString(result) + ',', 'utf-8')
     //                     .then(() => {
-    //                         Logger.log("saved file: " + query)
+    //                         Logger.log('saved file: ' + query)
     //                     })
     //                 return result
     //             });
@@ -234,7 +286,7 @@ router.post('/make_playlist', function(req, res, next) {
 
     //         })
     //         .catch((error) => {
-    //             Logger.log("Search: " + options.q + "\n" + error, 'error')
+    //             Logger.log('Search: " + options.q + "\n' + error, 'error')
     //             doError(error, res)
     //         })
 
@@ -260,10 +312,10 @@ router.post('/make_playlist', function(req, res, next) {
     //                         }
     //                     }
     //                 }).then((response) => {
-    //                     Logger.log("Inserted: " + datum.query +"\n\t" + datum.title)
+    //                     Logger.log('Inserted: " + datum.query +"\n\t' + datum.title)
     //                 })
     //                 .catch((error) => {
-    //                     Logger.log("Insert: " + error, 'error')
+    //                     Logger.log('Insert: ' + error, 'error')
     //                     doError(error, res)
     //                 })
     //         })
@@ -279,20 +331,8 @@ router.post('/make_playlist', function(req, res, next) {
 
 
 });
-// ytsearch(options)
-//     .then((data) => {
-//         Logger.log('search data: ' + createJsonString(data));
-//         res.render('do_things', { title: 'Let\'s do things!', data });
-//     })
-//     .catch((error) => {
-//         Logger.log('Error: ' + error, 'error');
-//         getErrorGif().then((errorImageUrl) => {
-//             res.render('error', { error, errorImageUrl });
-//         });
-//     });
 
 router.get('/do_things', function(req, res, next) {
-
     res.render('do_things', {
         title: 'Let\'s do things!'
     });
@@ -316,56 +356,15 @@ router.get('/oAuthUrl', function(req, res, next) {
 
 });
 
-/* GET home page. */
-router.get('/link', function(req, res, next) {
 
-    const scopes = [
-        'https://www.googleapis.com/auth/youtube'
-    ];
-    authorizeUrl = oAuth2Client.generateAuthUrl({
-        access_type: 'offline',
-        scope: scopes.join(' ')
-    });
-    rp(authorizeUrl).then((arg) => {
-        res.render('index', {
-            title: 'Express',
-            html: arg
-        });
-    }).catch((error) => {
-        Logger.log('Error: ' + error, 'error');
-        getErrorGif().then((errorImageUrl) => {
-            res.render('error', {
-                error,
-                errorImageUrl
-            });
-        });
-    });
-
-});
 
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-
     res.render('index2', {
         title: 'Express',
         html: {}
     })
-
-    // let authUrl = oauth.generateAuthUrl({
-    //     access_type: "offline",
-    //     scope: ["https://www.googleapis.com/auth/youtube"]
-    // });
-    // rp(authUrl).then((arg) => {
-    //     res.render('index', {
-    //         title: 'Express',
-    //         html: arg
-    //     });
-    // }).catch((error) => {
-    //     res.render('error', {
-    //         error
-    //     });
-    // });
 });
 
 
