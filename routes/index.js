@@ -180,6 +180,16 @@ router.get('/remove_dups', function(req, res, next) {
         });
 
 })
+router.get('/search_playlist', function(req, res, next) {
+    readFile('../searchResults.json', 'utf-8')
+        .then((data) => {
+             res.render('do_things', {
+                title: 'Let\'s do things!',
+                data: JSON.parse(data)
+            });
+        })
+})
+
 router.post('/make_playlist', function(req, res, next) {
     readFile('../searchResults.json', 'utf-8')
         .then((data) => {

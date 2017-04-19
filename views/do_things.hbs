@@ -1,5 +1,4 @@
 <h1>{{title}}</h1>
-<button id="linkAccount" type="button" class="btn btn-primary"> <i class="fa fa-star-o" aria-hidden="true"></i> Link Account</button>
 <div class="form-group">
     <form action="/make_playlist" method="post">
         <div class="input-group input-group-lg">
@@ -19,14 +18,27 @@
         </div>
     </form>
 </div>
-{{#each data}}
-<div class="card" style="width: 20rem;">
-    <img class="card-img-top" src="{{thumbnail}}" alt="{{title}}">
-    <div class="card-block">
-        <h4 class="card-title">{{title}}</h4>
-        <p class="card-text">{{description}}</p>
-        <p class="card-text">{{query}}</p>
-        <a href="{{videoUrl}}" class="btn btn-primary" target="_blank">Play</a>
+
+<a class="btn btn-primary" href="/search_playlist"><i class="fa fa-search"></i></a>
+    <div class="card-deck">
+    {{#each data}}
+    
+    <div class="card" style="width: 20rem;">
+        <img class="card-img-top" src="{{thumbnail}}" alt="{{title}}">
+        <div class="card-block">
+            <h4 class="card-title">{{title}}</h4>
+            <p class="card-text">{{description}}</p>
+        </div>
+        <div class="card-footer">
+            <a href="{{videoUrl}}" class="btn btn-primary" target="_blank">Play</a>
+            <small class="text-muted">{{ @index}}  {{query}} </small>
+        </div>
     </div>
+    {{#ifNth 3 (add @index 1)}}
+    </div>
+    <div class="card-deck">
+    {{else}}
+    {{/ifNth}}
+
+    {{/each}}
 </div>
-{{/each}}

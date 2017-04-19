@@ -10,6 +10,13 @@ var users = require('./routes/users');
 const rp = require('request-promise');
 var app = express();
 var routes = require('./routes/index');
+// handel bars helpers
+var hbs = require('hbs');
+var helpers = require('handlebars-helpers')({handlebars: hbs.handlebars});
+//helpers.comparison({handlebars: hbs.handlebars});
+
+//var hbs_stuff = require('hbs_stuff.js')
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
@@ -21,11 +28,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
     extended: false
 }));
-var corsOptions = {
-  origin: 'http://localhost:3000/',
-  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
-}
-app.use(cors());
+
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -38,7 +41,6 @@ app.use(function(req, res, next) {
     err.status = 404;
     next(err);
 });
-
 // error handlers
 
 // development error handler
