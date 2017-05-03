@@ -2,10 +2,10 @@
 <div class="form-group">
     <form action="/make_playlist" method="post">
         <div class="input-group input-group-lg">
-            <textarea class="form-control" placeholder="festival lineup" aria-describedby="sizing-addon1" name="bands">A TRIBE CALLED QUEST, ABOVE & BEYOND, ACTION BRONSON, ALT-J, BELLE AND SEBASTIAN, BERKLEE COLLEGE OF MUSIC, BLEACHERS, BOMBA ESTÉREO, DAWES, DR. OCTAGON, ELECTRIC GUEST, EMPIRE OF THE SUN, FLEET FOXES, FOXYGEN, FRENSHIP, FUTURE ISLANDS, GOLDROOM, GORILLAZ, GRACE MITCHELL, HAMILTON LEITHAUSER, HOW TO DRESS WELL, HUNDRED WATERS, JACOB BANKS, JAMES VINCENT MCMORROW, JOHN MORELAND, JOSEPH, K.FLAY, KALI UCHIS, KAMAIYAH, KAYTRANADA, KHRUANGBIN, LAWRENCE, LEE FIELDS & THE EXPRESSIONS, LITTLE DRAGON, LORDE, LOUIS THE CHILD, MAGGIE ROGERS, METALLICA, MON LAFERTE, MONDO COZMO, MUNA, NONAME, OLIVER TREE, PORCHES, QUEENS OF THE STONE AGE, RAC, RAG'N'BONE MAN, REAL ESTATE, REBELUTION, ROYAL BLOOD, S U R V I V E, SAM DEW, SAN FERMIN, SCHOOLBOY Q, SHOVELS & ROPE, SLEIGH BELLS, SOFI TUKKER, SOHN, SOLANGE, TEMPLES, THE AVETT BROTHERS, THE JAPANESE HOUSE, THE LEMON TWIGS, THE SHE'S, THE WHO, THUNDERCAT, TOVE LO, VANCE JOY, WARPAINT, YOUNG THE GIANT</textarea>
+            <textarea id="band_names" class="form-control" placeholder="festival lineup" aria-describedby="sizing-addon1" name="bands">A TRIBE CALLED QUEST, ABOVE & BEYOND, ACTION BRONSON, ALT-J, BELLE AND SEBASTIAN, BERKLEE COLLEGE OF MUSIC, BLEACHERS, BOMBA ESTÉREO, DAWES, DR. OCTAGON, ELECTRIC GUEST, EMPIRE OF THE SUN, FLEET FOXES, FOXYGEN, FRENSHIP, FUTURE ISLANDS, GOLDROOM, GORILLAZ, GRACE MITCHELL, HAMILTON LEITHAUSER, HOW TO DRESS WELL, HUNDRED WATERS, JACOB BANKS, JAMES VINCENT MCMORROW, JOHN MORELAND, JOSEPH, K.FLAY, KALI UCHIS, KAMAIYAH, KAYTRANADA, KHRUANGBIN, LAWRENCE, LEE FIELDS & THE EXPRESSIONS, LITTLE DRAGON, LORDE, LOUIS THE CHILD, MAGGIE ROGERS, METALLICA, MON LAFERTE, MONDO COZMO, MUNA, NONAME, OLIVER TREE, PORCHES, QUEENS OF THE STONE AGE, RAC, RAG'N'BONE MAN, REAL ESTATE, REBELUTION, ROYAL BLOOD, S U R V I V E, SAM DEW, SAN FERMIN, SCHOOLBOY Q, SHOVELS & ROPE, SLEIGH BELLS, SOFI TUKKER, SOHN, SOLANGE, TEMPLES, THE AVETT BROTHERS, THE JAPANESE HOUSE, THE LEMON TWIGS, THE SHE'S, THE WHO, THUNDERCAT, TOVE LO, VANCE JOY, WARPAINT, YOUNG THE GIANT</textarea>
         </div>
         <div class="input-group input-group-lg">
-            <input type="text" class="form-control" placeholder="delimiter" aria-describedby="sizing-addon1" name="delimiter" value=",">
+            <input id="delimiter" type="text" class="form-control" placeholder="delimiter" aria-describedby="sizing-addon1" name="delimiter" value=",">
         </div>
         <div class="btn-group">
             <button type="submit" class="btn btn-primary">
@@ -15,30 +15,47 @@
                 <i class="fa fa-files-o "></i>
                 <i class="fa fa-ban "></i>
             </button>
+            <button id="a0" type="button" class="btn btn-primary">
+                0
+            </button>
+            <button id="a1" type="button" class="btn btn-primary">
+                preview playlist
+            </button>
+            <button id="a2" type="button" class="btn btn-primary">
+                create playlist
+            </button>
+            <button id="a3" type="button" class="btn btn-primary">
+                3
+            </button>
+            <button id="a4" type="button" class="btn btn-primary">
+                4
+            </button>
+            <button id="a5" type="button" class="btn btn-primary">
+                5
+            </button>
         </div>
     </form>
 </div>
-
 <a class="btn btn-primary" href="/search_playlist"><i class="fa fa-search"></i></a>
-    <div class="card-deck">
-    {{#each data}}
-    
-    <div class="card" style="width: 20rem;">
-        <img class="card-img-top" src="{{thumbnail}}" alt="{{title}}">
-        <div class="card-block">
-            <h4 class="card-title">{{title}}</h4>
-            <p class="card-text">{{description}}</p>
-        </div>
-        <div class="card-footer">
-            <a href="{{videoUrl}}" class="btn btn-primary" target="_blank">Play</a>
-            <small class="text-muted">{{ @index}}  {{query}} </small>
-        </div>
-    </div>
-    {{#ifNth 3 (add @index 1)}}
-    </div>
-    <div class="card-deck">
-    {{else}}
-    {{/ifNth}}
 
-    {{/each}}
+<div id="video_list"></div>
+
+<div id="myModal" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Modal Header</h4>
+      </div>
+      <div class="modal-body">
+        <p>Some text in the modal.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+
+  </div>
 </div>

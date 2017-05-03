@@ -18,6 +18,7 @@
     "googleapis": "^18.0.0",
     "handlebars-helpers": "^0.8.2",
     "hbs": "^4.0.1",
+    "hbs-utils": "0.0.4",
     "morgan": "~1.7.0",
     "querystring": "^0.2.0",
     "r-json": "^1.2.5",

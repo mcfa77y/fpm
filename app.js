@@ -13,6 +13,10 @@ var routes = require('./routes/index');
 // handel bars helpers
 var hbs = require('hbs');
 var helpers = require('handlebars-helpers')({handlebars: hbs.handlebars});
+
+var hbsutils = require('hbs-utils')(hbs);
+hbsutils.registerPartials(path.join(__dirname, './view/partials'));
+hbsutils.registerWatchedPartials(path.join(__dirname, './view/partials'));
 //helpers.comparison({handlebars: hbs.handlebars});
 
 //var hbs_stuff = require('hbs_stuff.js')

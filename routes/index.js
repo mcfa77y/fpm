@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const rp = require('request-promise');
 
-
+const fs = require('fs')
 const readJson = require('r-json');
 const Logger = require('bug-killer');
 const p = require('bluebird');
@@ -10,6 +10,7 @@ const _ = require('underscore');
 const google = require('googleapis');
 //var sampleClient = require('../sampleclient');
 var util = require('util');
+var path = require('path');
 
 
 const CREDENTIALS = readJson(`${__dirname}/../credentials.json`);
@@ -33,8 +34,8 @@ const playlistItems = p.promisify(youtube.playlistItems.list)
 const insertPlaylist = p.promisify(youtube.playlists.insert)
 const insertPlaylistItem = p.promisify(youtube.playlistItems.insert)
 const deletePlaylistItem = p.promisify(youtube.playlistItems.delete)
-const appendFile = p.promisify(require('fs').appendFile)
-const readFile = p.promisify(require('fs').readFile)
+const appendFile = p.promisify(fs.appendFile)
+const readFile = p.promisify(fs.readFile)
     // const getToken = p.promisify(sampleClient.oAuth2Client.getToken, {
     //     context: sampleClient.oAuth2Client
     // })
@@ -69,7 +70,7 @@ function getErrorGif() {
 
 function doError(error, res) {
     getErrorGif().then((errorImageUrl) => {
-        res.render('do_things');
+        res.render('error', {error, errorImageUrl, layout:false});
     }).catch((err) => {
         Logger.log('Error getting gif: ' + err, 'error');
         res.render('error', {
@@ -111,83 +112,189 @@ router.get('/oauth2callback', function(req, res, next) {
             doError(err, res)
         });
 });
-function getDupIds(items){
-    return _.chain(items)
-                    .map((item) => {
-                        return {
-                            id: item.id,
-                            videoId: item.snippet.resourceId.videoId
-                        }
-                    })
-                    .groupBy((x) => {
-                        return x.videoId
-                    })
-                    .filter((x) => {
-                        return x.length > 1
-                    })
-                    .flatten()
-                    .map((x) => {
-                        return x.id
-                    })
-                    .value()
-}
-router.get('/remove_dups', function(req, res, next) {
 
-    playlistItems({
+function getDupIds(items) {
+    return _.chain(items)
+        .groupBy((x) => {
+            return x.videoId
+        })
+        .filter((x) => {
+            return x.length > 1
+        })
+        .flatten()
+        .map((x) => {
+            return x.id
+        })
+        .value()
+}
+
+function promiseWhile(starterPromise, processPromise, options){
+    starterPromise(options.initalParameters).then((resp)=>{
+        processPromise(resp).then((resp2)=>{
+            
+                return processPromise(resp2)
+            
+        })
+    })
+}
+router.get('/remove_dups', (req, res, next) => {
+    function get_playlist(nextPageToken) {
+        const options = {
             part: 'snippet',
             playlistId: 'PL64D0E5AFD257405A',
             maxResults: 50
-        })
-        .then((response) => {
+        }
+        if (nextPageToken) {
+            console.log('has nxtpgtk: ' + nextPageToken)
+            options.pageToken = nextPageToken
+        } else {
+            console.log('has nxtpgtk: NONE')
+        }
+        return playlistItems(options)
+    }
 
-            function agAg(resp) {
+    get_playlist().then((response) => {
+        function get_all_video_ids(response2, ids=[]) {
+            const result = response2.items.map((item) => {
+                return {
+                id: item.id,
+                videoId: item.snippet.resourceId.videoId
+            }
+            }).concat(ids)
+
+            if (response2.nextPageToken) {
+                return get_playlist(response2.nextPageToken).then((response3) => {
+                    return get_all_video_ids(response3, result)
+                })
+            } else {
+               return result
+            }
+
+
+
+        }
+
+        get_all_video_ids(response).then((result)=>{
+            console.log('res len: ' + result.length)
+            console.log('res len: ' + createJsonString(result))
+
+            function delete_duplicate_video_ids(items) {
                 // get videos not already in the playlist
-                const dupIds = getDupIds(resp.items)
-                if (dupIds.length == 0 && !resp.nextPageToken) {
+                const dupIds = getDupIds(items)
+                if (dupIds.length == 0) {
+                    console.log('finished deleting doops')
+                    res.send({status: "success"})
                     return
                 }
-                Logger.log("deleted this many items out of: " + dupIds.length + " / " + resp.items.length)
-                p.some(dupIds.map((id) => {
-                        return deletePlaylistItem({
-                            id
-                        })
-                    }), parseInt(dupIds.length * 0.50))
-                    .then(() => {
-                        const options = {
-                            part: 'snippet',
-                            playlistId: 'PL64D0E5AFD257405A',
-                            maxResults: 50
-                        }
-                        const nextPageToken = resp.nextPageToken;
-                        if(nextPageToken && dupIds.length==0){
-                            options.pageToken=nextPageToken
-                        }
-                        return playlistItems(options)
+                Logger.log("deleted this many items out of: " + dupIds.length)
+                const delete_item_promises = dupIds.map((id) => {
+                    return deletePlaylistItem({
+                        id
                     })
-                    .then((resp) => {
-                        agAg(resp)
+                })
+                const complete_N = Math.max(1, parseInt(dupIds.length * 0.95))
+                p.some(delete_item_promises, complete_N)
+                    .then(() => {
+                        return get_playlist().then((response4)=>{return get_all_video_ids(response4)});
+                    })
+                    .then((vidIds) => {
+                        console.log("next pl vid ids len:\n" + createJsonString(vidIds.length))
+                        delete_duplicate_video_ids(vidIds)
                     })
                     .catch((err) => {
-                        Logger.log('delete playlist item error 11: ' + err);
+                        Logger.log('delete playlist item error 112: ' + err);
                         doError(err, res)
                     });
             }
-            agAg(response)
+            delete_duplicate_video_ids(result)
         })
-        .catch((err) => {
-            Logger.log('delete playlist item error' + err);
-            doError(err, res)
-        });
+
+    })
 
 })
-router.get('/search_playlist', function(req, res, next) {
-    readFile('../searchResults.json', 'utf-8')
+const outputFile = path.join(__dirname, '../output.json')
+router.post('/search_playlist', function(req, res, next) {
+    const searchPromises = req.body.bands.split(req.body.delimiter).map((query) => {
+        const musicCategory = 10
+        const options = {
+            part: 'snippet',
+            q: query,
+            maxResults: 1,
+            type: 'video',
+            videoCategoryId: musicCategory,
+            videoDuration:'short'
+        };
+        return search(options)
+            .then((data) => {
+
+                return data.items.map((item) => {
+                    const snippet = item.snippet
+                    const date = snippet.publishedAt
+                    const description = snippet.description
+                    const thumbnail = snippet.thumbnails.medium.url
+                    const title = snippet.title
+                    const videoId = item.id.videoId
+                    const videoUrl = "https://www.youtube.com/watch?v=" + item.id.videoId
+                    const result = {
+                        date,
+                        description,
+                        thumbnail,
+                        title,
+                        videoId,
+                        videoUrl,
+                        query
+                    }
+                    // Logger.log('info item: ' + createJsonString(result), 'info')
+
+                    appendFile(outputFile, createJsonString(result) + ',', 'utf-8')
+                        .then(() => {
+                            Logger.log('appended file: ' + query)
+                        })
+                    return result
+                });
+
+
+            })
+            .catch((error) => {
+                Logger.log('Search: " + options.q + "\n' + error, 'error')
+                doError(error, res)
+            })
+
+    })
+    p.reduce(searchPromises,
+            (acc, promises) => {
+                promises.forEach((p) => acc.push(p))
+                return acc
+            }, [])
         .then((data) => {
-             res.render('do_things', {
-                title: 'Let\'s do things!',
-                data: JSON.parse(data)
-            });
-        })
+
+            // data.forEach((datum) => {
+            //     const details = {
+            //         videoId: datum.videoId,
+            //         kind: 'youtube#video'
+            //     }
+                // insertPlaylistItem({
+                //         part: 'snippet',
+                //         resource: {
+                //             snippet: {
+                //                 playlistId: 'PL64D0E5AFD257405A',
+                //                 resourceId: details
+                //             }
+                //         }
+                //     }).then((response) => {
+                //         Logger.log('Inserted: " + datum.query +"\n\t' + datum.title)
+                //     })
+                //     .catch((error) => {
+                //         Logger.log('Insert: ' + error, 'error')
+                //         doError(error, res)
+                //     })
+            // })
+
+            // Logger.log('search data: ' + createJsonString(data), 'info');
+            return res.render('video_list', {data, layout:false})
+        }).catch((error) => {
+            doError(error, res)
+        });
 })
 
 router.post('/make_playlist', function(req, res, next) {
@@ -214,7 +321,7 @@ router.post('/make_playlist', function(req, res, next) {
                     })
                 })
 
-                p.some(insertPromises, parseInt(insertPromises.length * 0.95))
+                p.some(insertPromises, Math.max(parseInt(insertPromises.length * 0.95), 1))
                     .then(() => {
                         Logger.log('number of video insert attempts: ' + d2.length)
                         return playlistItems({

@@ -35,9 +35,45 @@ $(function() {
                 toastr["success"]("Doops removed")
             })
             .catch((err) =>{
-                toastr['error']('something happened' + JSAON.parse(err,null,4))
+                toastr['error']('something happened' + JSON.stringify(err,null,4))
             });
     })
+    $('#a0').click(() => {
+        $.ajax({
+                method: "GET",
+                url: "get_all_video_ids",
+
+            })
+            .done(function(data) {
+                toastr["success"]("Data: "+ JSON.stringify(data,null,4))
+            })
+            .catch((err) =>{
+                console.log(JSON.stringify(err,null,4))
+                // toastr['error']('something happened' + JSON.stringify(err,null,4))
+                $('#myModal').modal('toggle')
+                $('#myModal').find('.modal-body').html(JSON.stringify(err,null,4))
+            });
+    })
+
+    $('#a1').click(() => {
+        $.ajax({
+                method: "POST",
+                url: "search_playlist",
+                data:{ 
+                    bands: $('#band_names').val(),
+                    delimiter: $('#delimiter').val()}
+            })
+            .done(function(data) {
+                $('#video_list').html(data)
+            })
+            .catch((err) =>{
+                console.log(JSON.stringify(err,null,4))
+                // toastr['error']('something happened' + JSON.stringify(err,null,4))
+                $('#myModal').modal('toggle')
+                $('#myModal').find('.modal-body').html(err.responseText)
+            });
+    })
+
     $('#listFromFile').click(() => {
         $.ajax({
                 method: "GET",
